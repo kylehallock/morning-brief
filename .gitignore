@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+*.json.bak
+venv/
+.venv/
+
+# Keep cache directory but ignore contents (managed by app)
+# doc_snapshots.json is committed by GitHub Actions
