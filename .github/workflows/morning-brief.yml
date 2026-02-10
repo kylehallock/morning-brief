@@ -2,7 +2,7 @@ name: Morning Brief
 
 on:
   schedule:
-    - cron: '0 13 * * *'    # 6 AM MST / 7 AM MDT
+    - cron: '0 13 * * *' # 6 AM MST / 7 AM MDT
   workflow_dispatch:          # Manual trigger for testing
 
 permissions:
