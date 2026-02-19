@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import feedparser
 
-from src.config import MDX_QUERIES, TECH_QUERIES
+from src.config import MDX_QUERIES
 
 logger = logging.getLogger(__name__)
 
@@ -92,10 +92,5 @@ def _parse_pub_date(entry: dict) -> datetime | None:
 
 
 def fetch_diagnostics_news() -> list[NewsItem]:
-    """Fetch TB diagnostics news."""
-    return fetch_news(MDX_QUERIES, max_results=10)
-
-
-def fetch_tech_news() -> list[NewsItem]:
-    """Fetch general tech news."""
-    return fetch_news(TECH_QUERIES, max_results=5)
+    """Fetch molecular diagnostics news (TB-specific + broader MDx)."""
+    return fetch_news(MDX_QUERIES, max_results=15)

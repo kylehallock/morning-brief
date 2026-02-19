@@ -13,6 +13,8 @@ from src.config import GOOGLE_SCOPES, get_google_credentials_info
 logger = logging.getLogger(__name__)
 
 MIME_GOOGLE_DOC = "application/vnd.google-apps.document"
+MIME_GOOGLE_SHEET = "application/vnd.google-apps.spreadsheet"
+MIME_GOOGLE_SLIDES = "application/vnd.google-apps.presentation"
 MIME_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
@@ -77,8 +79,13 @@ class DriveReader:
             return self._extract_google_doc_text(doc_id)
         elif mime_type == MIME_DOCX:
             return self._extract_docx_text(doc_id)
-        else:
+        elif mime_type == MIME_GOOGLE_SHEET:
+            return self._export_as_csv(doc_id)
+        elif mime_type == MIME_GOOGLE_SLIDES:
             return self._export_as_plain_text(doc_id)
+        else:
+            logger.warning(f"Unsupported MIME type for text extraction: {mime_type}")
+            return f"[Cannot extract text from file type: {mime_type}]"
 
     def _extract_google_doc_text(self, doc_id: str) -> str:
         """Extract text from a Google Doc via Docs API."""
@@ -118,6 +125,17 @@ class DriveReader:
         content = request.execute()
         doc = Document(io.BytesIO(content))
         return "\n".join(p.text for p in doc.paragraphs)
+
+    def _export_as_csv(self, doc_id: str) -> str:
+        """Export a Google Sheet as CSV text."""
+        content = (
+            self._drive.files()
+            .export(fileId=doc_id, mimeType="text/csv")
+            .execute()
+        )
+        if isinstance(content, bytes):
+            return content.decode("utf-8")
+        return content
 
     def _export_as_plain_text(self, doc_id: str) -> str:
         """Export a Google Workspace file as plain text."""

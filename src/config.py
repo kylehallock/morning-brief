@@ -19,15 +19,18 @@ GOOGLE_SCOPES = [
 CACHE_DIR = PROJECT_ROOT / "cache"
 SNAPSHOT_PATH = CACHE_DIR / "doc_snapshots.json"
 
-# News search queries — TB diagnostics + general tech
-MDX_QUERIES = [
+# News search queries — TB diagnostics + broader molecular diagnostics
+MDX_TB_QUERIES = [
     '"tuberculosis diagnostics" OR "TB diagnostics" OR "TB testing" OR "tuberculosis point-of-care" OR "TB molecular test"',
     '"GeneXpert" OR "Truenat" OR "TB-LAMP" OR "tuberculosis PCR" OR "TB rapid test" OR "near-patient TB"',
     '"Pluslife" OR "Cepheid tuberculosis" OR "MolBio diagnostics" OR "Coyote Biosciences" OR "Hain Lifescience" OR "SD Biosensor tuberculosis"',
 ]
-TECH_QUERIES = [
-    '"artificial intelligence" OR "biotech" OR "semiconductor"',
+MDX_BROAD_QUERIES = [
+    '"molecular diagnostics" OR "molecular testing" OR "PCR diagnostics" OR "nucleic acid testing"',
+    '"point-of-care diagnostics" OR "rapid molecular test" OR "isothermal amplification" OR "LAMP assay"',
+    '"CRISPR diagnostics" OR "lateral flow" OR "biosensor" OR "microfluidics diagnostics"',
 ]
+MDX_QUERIES = MDX_TB_QUERIES + MDX_BROAD_QUERIES
 
 
 def load_documents() -> list[dict]:
@@ -52,6 +55,14 @@ def get_google_credentials_info() -> dict:
             return json.load(f)
 
     return json.loads(key_data)
+
+
+def get_gemini_api_key() -> str:
+    """Load Gemini API key from environment variable."""
+    key = os.getenv("GEMINI_API_KEY", "")
+    if not key:
+        raise ValueError("GEMINI_API_KEY environment variable not set")
+    return key
 
 
 def get_email_config() -> dict:

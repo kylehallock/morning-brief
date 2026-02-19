@@ -8,7 +8,8 @@ from src.config import SNAPSHOT_PATH, load_documents, get_google_credentials_inf
 from src.diff_engine import DocumentChange, compute_changes, load_snapshot, save_snapshot
 from src.drive_reader import DriveReader
 from src.email_sender import compose_html, send_email
-from src.news_aggregator import fetch_diagnostics_news, fetch_tech_news
+from src.news_aggregator import fetch_diagnostics_news
+from src.summarizer import summarize_updates
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,7 +56,16 @@ def run():
                 logger.info(f"  {title}: {'changed' if new_content else 'no changes'}")
             except Exception as e:
                 logger.error(f"Failed to read {title}: {e}")
-                errors.append(f"Document '{title}': {e}")
+                err_str = str(e)
+                if "404" in err_str or "not found" in err_str.lower():
+                    errors.append(
+                        f"Document '{title}': File not found. "
+                        f"The file ID may be stale (document moved/deleted) or "
+                        f"not shared with the service account. "
+                        f"Update config/documents.json with the current file ID."
+                    )
+                else:
+                    errors.append(f"Document '{title}': {e}")
 
         save_snapshot(SNAPSHOT_PATH, new_snapshots)
         logger.info(f"Snapshot saved ({len(new_snapshots)} documents)")
@@ -64,9 +74,15 @@ def run():
         logger.error(f"Document section failed: {e}")
         errors.append(f"Document section: {e}")
 
+    # --- Section 1b: Summarize changes ---
+    summary = ""
+    try:
+        summary = summarize_updates(doc_changes)
+    except Exception as e:
+        logger.error(f"Summarization failed: {e}")
+
     # --- Section 2: News ---
     mdx_news = []
-    tech_news = []
     try:
         mdx_news = fetch_diagnostics_news()
         logger.info(f"MDx news: {len(mdx_news)} articles")
@@ -74,18 +90,11 @@ def run():
         logger.error(f"MDx news failed: {e}")
         errors.append(f"MDx news: {e}")
 
-    try:
-        tech_news = fetch_tech_news()
-        logger.info(f"Tech news: {len(tech_news)} articles")
-    except Exception as e:
-        logger.error(f"Tech news failed: {e}")
-        errors.append(f"Tech news: {e}")
-
     # --- Section 3: Email ---
     try:
         now = datetime.now(timezone.utc)
         subject = f"Morning Brief \u2014 {now.strftime('%A, %B %d, %Y')}"
-        html = compose_html(doc_changes, mdx_news, tech_news, errors)
+        html = compose_html(doc_changes, summary, mdx_news, errors)
         send_email(subject, html)
         logger.info("Briefing sent successfully")
     except Exception as e:
