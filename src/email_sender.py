@@ -61,13 +61,12 @@ def compose_html(
     if mdx_news:
         news_rows = []
         for item in mdx_news:
-            summary_html = f'<div style="font-size:13px; color:#6b7280; margin-top:2px;">{_escape(item.summary)}</div>' if item.summary else ""
             news_rows.append(
                 f'<div style="margin-bottom:12px;">'
                 f'<a href="{_escape(item.url)}" style="color:#2563eb; text-decoration:none; '
                 f'font-size:14px; font-weight:bold;">{_escape(item.title)}</a>'
                 f'<span style="font-size:12px; color:#9ca3af; margin-left:8px;">{_escape(item.source)}</span>'
-                f'{summary_html}</div>'
+                f'</div>'
             )
         sections.append(
             '<h2 style="color:#1e3a5f; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">'

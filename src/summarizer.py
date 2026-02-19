@@ -24,9 +24,13 @@ SYSTEM_PROMPT = (
 def summarize_updates(changes: list[DocumentChange]) -> str:
     """Summarize document changes using Gemini 2.0 Flash.
 
-    Returns the AI summary text, or an empty string if no changes or on failure.
+    Returns the AI summary text, a raw-content fallback if Gemini fails,
+    or an empty string if there are no real changes to summarize.
     """
-    changed = [c for c in changes if c.changed and c.new_content]
+    changed = [
+        c for c in changes
+        if c.changed and c.new_content and not c.new_content.startswith("[First run")
+    ]
     if not changed:
         return ""
 
@@ -49,4 +53,12 @@ def summarize_updates(changes: list[DocumentChange]) -> str:
         return summary
     except Exception as e:
         logger.error(f"Gemini summarization failed: {e}")
-        return ""
+        return _fallback_summary(changed)
+
+
+def _fallback_summary(changes: list[DocumentChange]) -> str:
+    """Build a simple raw-content summary when Gemini is unavailable."""
+    parts = []
+    for c in changes:
+        parts.append(f"{c.title}:\n{c.new_content}")
+    return "\n\n".join(parts)
