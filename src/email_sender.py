@@ -109,19 +109,20 @@ def compose_html(
 def send_email(subject: str, html_body: str) -> None:
     """Send an HTML email via Gmail SMTP."""
     config = get_email_config()
+    recipients = config["recipients"]
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = config["sender"]
-    msg["To"] = config["recipient"]
+    msg["To"] = ", ".join(recipients)
     msg.attach(MIMEText(html_body, "html"))
 
     with smtplib.SMTP(config["smtp_host"], config["smtp_port"]) as server:
         server.starttls()
         server.login(config["sender"], config["password"])
-        server.sendmail(config["sender"], config["recipient"], msg.as_string())
+        server.sendmail(config["sender"], recipients, msg.as_string())
 
-    logger.info(f"Email sent to {config['recipient']}")
+    logger.info(f"Email sent to {', '.join(recipients)}")
 
 
 def _escape(text: str) -> str:

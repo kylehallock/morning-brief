@@ -81,10 +81,13 @@ def get_email_config() -> dict:
             missing.append("EMAIL_RECIPIENT")
         raise ValueError(f"Missing email environment variables: {', '.join(missing)}")
 
+    # Support comma-separated recipient list
+    recipients = [r.strip() for r in recipient.split(",") if r.strip()]
+
     return {
         "smtp_host": "smtp.gmail.com",
         "smtp_port": 587,
         "sender": sender,
         "password": password,
-        "recipient": recipient,
+        "recipients": recipients,
     }
