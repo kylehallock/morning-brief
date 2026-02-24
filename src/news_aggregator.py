@@ -1,6 +1,7 @@
 """News aggregation from Google News RSS feeds."""
 
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -65,7 +66,6 @@ def fetch_news(queries: list[str], max_results: int = 10, hours_back: int = 24) 
             summary = entry.get("summary", entry.get("description", ""))
             # Strip HTML tags from summary
             if "<" in summary:
-                import re
                 summary = re.sub(r"<[^>]+>", "", summary).strip()
 
             items.append(NewsItem(

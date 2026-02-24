@@ -86,7 +86,7 @@ gh workflow run morning-brief.yml
 ## How It Works
 
 1. **Document monitoring**: Reads all configured Google Drive files (Docs, Sheets, Slides, docx), compares against cached snapshots, and detects additions using `difflib.SequenceMatcher`.
-2. **AI summarization**: Sends document changes to Gemini 2.0 Flash to produce a concise thematic summary highlighting key decisions, progress, blockers, and action items.
+2. **AI summarization**: Sends document changes to Gemini 2.5 Flash Lite to produce a concise thematic summary highlighting key decisions, progress, blockers, and action items.
 3. **News aggregation**: Queries Google News RSS for molecular diagnostics articles (TB diagnostics, PCR, POC testing, CRISPR diagnostics, biosensors, and more) from the last 24 hours.
 4. **Email**: Composes an HTML email with the AI summary, a reference list of updated documents, MDx news headlines, and any errors, then sends via Gmail SMTP.
 5. **Cache**: Saves document snapshots to `cache/doc_snapshots.json`, committed back to the repo by GitHub Actions with `[skip ci]` to avoid re-triggering.
