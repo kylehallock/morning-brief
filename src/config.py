@@ -18,6 +18,11 @@ GOOGLE_SCOPES = [
 # Cache paths
 CACHE_DIR = PROJECT_ROOT / "cache"
 SNAPSHOT_PATH = CACHE_DIR / "doc_snapshots.json"
+ROLLING_SUMMARY_PATH = CACHE_DIR / "rolling_summary.json"
+
+# Project context
+CONFIG_DIR = PROJECT_ROOT / "config"
+PROJECT_CONTEXT_PATH = CONFIG_DIR / "project_context.md"
 
 # News search queries — TB diagnostics + broader molecular diagnostics
 MDX_TB_QUERIES = [

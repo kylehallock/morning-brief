@@ -9,7 +9,12 @@ from src.diff_engine import DocumentChange, compute_changes, load_snapshot, save
 from src.drive_reader import DriveReader
 from src.email_sender import compose_html, send_email
 from src.news_aggregator import fetch_diagnostics_news
-from src.summarizer import summarize_updates
+from src.summarizer import (
+    generate_condensed_summary,
+    load_rolling_summary,
+    save_rolling_summary,
+    summarize_updates,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -80,6 +85,21 @@ def run():
         summary = summarize_updates(doc_changes)
     except Exception as e:
         logger.error(f"Summarization failed: {e}")
+
+    # --- Section 1c: Update rolling summary ---
+    if summary:
+        try:
+            condensed = generate_condensed_summary(summary)
+            if condensed:
+                rolling = load_rolling_summary()
+                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                # Replace existing entry for today, or append
+                rolling = [e for e in rolling if e.get("date") != today_str]
+                rolling.append({"date": today_str, "summary": condensed})
+                rolling.sort(key=lambda e: e.get("date", ""))
+                save_rolling_summary(rolling)
+        except Exception as e:
+            logger.error(f"Rolling summary update failed: {e}")
 
     # --- Section 2: News ---
     mdx_news = []

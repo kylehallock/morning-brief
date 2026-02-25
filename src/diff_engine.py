@@ -8,7 +8,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-MAX_CHANGE_CHARS = 500
+MAX_CHANGE_CHARS = 2000
 
 
 @dataclass
