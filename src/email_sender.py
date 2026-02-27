@@ -17,6 +17,7 @@ def compose_html(
     doc_changes: list[DocumentChange],
     summary: str,
     mdx_news: list[NewsItem],
+    tb_news: list[NewsItem],
     errors: list[str],
 ) -> str:
     """Build an HTML email body with inline CSS."""
@@ -77,6 +78,32 @@ def compose_html(
         sections.append(
             '<h2 style="color:#1e3a5f; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">'
             '&#128300; MOLECULAR DIAGNOSTICS NEWS</h2>'
+            '<div style="color:#9ca3af; font-size:14px;">No recent articles found.</div>'
+        )
+
+    # --- TB Tongue Swab Watch ---
+    if tb_news:
+        tb_rows = []
+        for item in tb_news:
+            source_label = f' &middot; {_escape(item.source)}' if item.source else ''
+            tb_rows.append(
+                f'<div style="margin-bottom:12px;">'
+                f'<a href="{_escape(item.url)}" style="color:#2563eb; text-decoration:none; '
+                f'font-size:14px; font-weight:bold;">{_escape(item.title)}</a>'
+                f'<span style="font-size:12px; color:#9ca3af; margin-left:8px;">'
+                f'{_format_time(item.published.isoformat() if item.published else "")}'
+                f'{source_label}</span>'
+                f'</div>'
+            )
+        sections.append(
+            '<h2 style="color:#1e3a5f; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">'
+            '&#129656; TB TONGUE SWAB WATCH</h2>'
+            + "\n".join(tb_rows)
+        )
+    else:
+        sections.append(
+            '<h2 style="color:#1e3a5f; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">'
+            '&#129656; TB TONGUE SWAB WATCH</h2>'
             '<div style="color:#9ca3af; font-size:14px;">No recent articles found.</div>'
         )
 
