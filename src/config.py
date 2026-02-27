@@ -23,6 +23,7 @@ ROLLING_SUMMARY_PATH = CACHE_DIR / "rolling_summary.json"
 # Project context
 CONFIG_DIR = PROJECT_ROOT / "config"
 PROJECT_CONTEXT_PATH = CONFIG_DIR / "project_context.md"
+TB_SOURCES_PATH = CONFIG_DIR / "tb_sources.json"
 
 # News search queries — TB diagnostics + broader molecular diagnostics
 MDX_TB_QUERIES = [
@@ -36,6 +37,12 @@ MDX_BROAD_QUERIES = [
     '"CRISPR diagnostics" OR "lateral flow" OR "biosensor" OR "microfluidics diagnostics"',
 ]
 MDX_QUERIES = MDX_TB_QUERIES + MDX_BROAD_QUERIES
+
+
+def load_tb_sources() -> dict:
+    """Read TB tongue swab news sources from config/tb_sources.json."""
+    with open(TB_SOURCES_PATH) as f:
+        return json.load(f)
 
 
 def load_documents() -> list[dict]:

@@ -9,6 +9,7 @@ from src.diff_engine import DocumentChange, compute_changes, load_snapshot, save
 from src.drive_reader import DriveReader
 from src.email_sender import compose_html, send_email
 from src.news_aggregator import fetch_diagnostics_news
+from src.tb_news_scraper import fetch_tb_news
 from src.summarizer import (
     generate_condensed_summary,
     load_rolling_summary,
@@ -110,11 +111,20 @@ def run():
         logger.error(f"MDx news failed: {e}")
         errors.append(f"MDx news: {e}")
 
+    # --- Section 2b: TB Tongue Swab News ---
+    tb_news = []
+    try:
+        tb_news = fetch_tb_news()
+        logger.info(f"TB tongue swab news: {len(tb_news)} articles")
+    except Exception as e:
+        logger.error(f"TB tongue swab news failed: {e}")
+        errors.append(f"TB tongue swab news: {e}")
+
     # --- Section 3: Email ---
     try:
         now = datetime.now(timezone.utc)
         subject = f"Morning Brief \u2014 {now.strftime('%A, %B %d, %Y')}"
-        html = compose_html(doc_changes, summary, mdx_news, errors)
+        html = compose_html(doc_changes, summary, mdx_news, tb_news, errors)
         send_email(subject, html)
         logger.info("Briefing sent successfully")
     except Exception as e:
