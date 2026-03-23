@@ -13,6 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/documents.readonly",
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
 ]
 
 # Cache paths
@@ -75,6 +76,15 @@ def get_gemini_api_key() -> str:
     if not key:
         raise ValueError("GEMINI_API_KEY environment variable not set")
     return key
+
+
+def get_email_privacy_threshold() -> int:
+    """Load the email privacy threshold from environment variable.
+
+    Emails with this many or fewer recipients are considered private
+    and excluded from the briefing. Default: 3.
+    """
+    return int(os.getenv("EMAIL_PRIVACY_THRESHOLD", "3"))
 
 
 def get_email_config() -> dict:

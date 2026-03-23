@@ -32,6 +32,18 @@ SYSTEM_PROMPT = (
     "wants substance, not just headlines."
 )
 
+EMAIL_SUMMARY_PROMPT = (
+    "You are summarizing recent team and group emails for a morning briefing. "
+    "The team (Stampede) is building a point-of-care TB testing device.\n\n"
+    "Provide 3-5 concise bullet points covering:\n"
+    "- Action items or requests directed at the team\n"
+    "- Key decisions or announcements\n"
+    "- External stakeholder communications\n"
+    "- Meeting follow-ups or scheduling changes\n\n"
+    "Be direct. Skip routine/automated emails (calendar invites, notifications). "
+    "Focus on what the reader needs to know or act on today."
+)
+
 CONDENSED_SUMMARY_PROMPT = (
     "Condense the following daily summary into exactly 2-3 sentences that capture "
     "the most important developments. This will be used as historical context for "
@@ -171,6 +183,56 @@ def generate_condensed_summary(daily_summary: str) -> str:
         return condensed
     except Exception as e:
         logger.error(f"Condensed summary generation failed: {e}")
+        return ""
+
+
+def summarize_emails(email_items) -> str:
+    """Summarize recent team emails using Gemini.
+
+    Args:
+        email_items: list of EmailItem dataclass instances from email_reader.
+
+    Returns the AI summary text, or empty string if no emails or generation fails.
+    """
+    if not email_items:
+        return ""
+
+    parts = []
+    for item in email_items:
+        parts.append(
+            f"Subject: {item.subject}\n"
+            f"From: {item.sender}\n"
+            f"Recipients: {item.recipient_count}\n"
+            f"Snippet: {item.snippet}"
+        )
+    user_content = (
+        "Here are recent team/group emails from the last 24 hours:\n\n"
+        + "\n\n---\n\n".join(parts)
+    )
+
+    # Prepend project context if available
+    project_context = _load_project_context()
+    if project_context:
+        user_content = (
+            "## Project Context\n"
+            f"{project_context}\n\n"
+            "---\n\n"
+            f"{user_content}"
+        )
+
+    try:
+        api_key = get_gemini_api_key()
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=user_content,
+            config={"system_instruction": EMAIL_SUMMARY_PROMPT, "temperature": 0.3},
+        )
+        summary = response.text.strip()
+        logger.info(f"Email summary generated ({len(summary)} chars)")
+        return summary
+    except Exception as e:
+        logger.error(f"Email summarization failed: {e}")
         return ""
 
 

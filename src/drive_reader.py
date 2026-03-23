@@ -17,6 +17,9 @@ MIME_GOOGLE_SHEET = "application/vnd.google-apps.spreadsheet"
 MIME_GOOGLE_SLIDES = "application/vnd.google-apps.presentation"
 MIME_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
+# Documents larger than this (bytes) use plain text export instead of Docs API
+LARGE_DOC_THRESHOLD = 5_000_000  # 5 MB
+
 
 @dataclass
 class DocumentMetadata:
@@ -25,6 +28,7 @@ class DocumentMetadata:
     mime_type: str
     modified_time: str
     last_editor: str
+    size: int = 0
 
 
 class DriveReader:
@@ -39,14 +43,15 @@ class DriveReader:
         )
         self._drive = build("drive", "v3", credentials=credentials)
         self._docs = build("docs", "v1", credentials=credentials)
+        self._sheets = build("sheets", "v4", credentials=credentials)
 
     def get_document_metadata(self, doc_id: str) -> DocumentMetadata:
-        """Get metadata for a document including last editor."""
+        """Get metadata for a document including last editor and size."""
         result = (
             self._drive.files()
             .get(
                 fileId=doc_id,
-                fields="id, name, mimeType, modifiedTime, lastModifyingUser",
+                fields="id, name, mimeType, modifiedTime, lastModifyingUser, size",
                 supportsAllDrives=True,
             )
             .execute()
@@ -55,19 +60,25 @@ class DriveReader:
         last_user = result.get("lastModifyingUser", {})
         last_editor = last_user.get("displayName", "Unknown")
 
+        # Google Workspace files don't report size via this field,
+        # so we fall back to 0 (will use Docs API by default)
+        size = int(result.get("size", 0))
+
         return DocumentMetadata(
             doc_id=result["id"],
             name=result["name"],
             mime_type=result.get("mimeType", ""),
             modified_time=result.get("modifiedTime", ""),
             last_editor=last_editor,
+            size=size,
         )
 
     def read_document_text(self, doc_id: str, mime_type: str = "") -> str:
         """Extract plain text from a document.
 
         Detects MIME type and uses the appropriate extraction method:
-        - Google Docs -> Docs API
+        - Google Sheets -> Sheets API (all tabs)
+        - Google Docs -> plain text export (fast, handles large docs)
         - .docx -> download + python-docx
         - Other -> Drive API export as text/plain
         """
@@ -76,46 +87,75 @@ class DriveReader:
             mime_type = meta.mime_type
 
         if mime_type == MIME_GOOGLE_DOC:
-            return self._extract_google_doc_text(doc_id)
+            return self._export_as_plain_text(doc_id)
         elif mime_type == MIME_DOCX:
             return self._extract_docx_text(doc_id)
         elif mime_type == MIME_GOOGLE_SHEET:
-            return self._export_as_csv(doc_id)
+            # For spreadsheets, use read_sheets() with known_sheets
+            # from the caller for incremental reads. This default
+            # reads everything (used on first run).
+            return self.read_sheets(doc_id)
         elif mime_type == MIME_GOOGLE_SLIDES:
             return self._export_as_plain_text(doc_id)
         else:
             logger.warning(f"Unsupported MIME type for text extraction: {mime_type}")
             return f"[Cannot extract text from file type: {mime_type}]"
 
-    def _extract_google_doc_text(self, doc_id: str) -> str:
-        """Extract text from a Google Doc via Docs API."""
-        doc = self._docs.documents().get(documentId=doc_id).execute()
-        body = doc.get("body", {})
-        content = body.get("content", [])
+    def get_sheet_names(self, doc_id: str) -> list[str]:
+        """Get the names of all sheets in a Google Spreadsheet."""
+        spreadsheet = (
+            self._sheets.spreadsheets()
+            .get(spreadsheetId=doc_id, fields="sheets.properties.title")
+            .execute()
+        )
+        return [
+            s["properties"]["title"]
+            for s in spreadsheet.get("sheets", [])
+        ]
 
-        text_parts = []
-        for element in content:
-            self._extract_text(element, text_parts)
+    def read_sheets(self, doc_id: str, sheet_names: list[str] | None = None) -> str:
+        """Read specific sheets (or all) from a Google Spreadsheet.
 
-        return "".join(text_parts)
+        Args:
+            doc_id: The spreadsheet ID.
+            sheet_names: List of sheet names to read. If None, reads all sheets.
 
-    def _extract_text(self, element: dict, parts: list[str]) -> None:
-        """Recursively extract text from a document element."""
-        if "paragraph" in element:
-            paragraph = element["paragraph"]
-            for elem in paragraph.get("elements", []):
-                if "textRun" in elem:
-                    parts.append(elem["textRun"].get("content", ""))
-        elif "table" in element:
-            table = element["table"]
-            for row in table.get("tableRows", []):
-                for cell in row.get("tableCells", []):
-                    for content in cell.get("content", []):
-                        self._extract_text(content, parts)
-                    parts.append("\t")
-                parts.append("\n")
-        elif "sectionBreak" in element:
-            pass
+        Returns a text representation with each sheet labeled by name,
+        rows separated by newlines, cells separated by tabs.
+        """
+        if sheet_names is None:
+            sheet_names = self.get_sheet_names(doc_id)
+
+        if not sheet_names:
+            logger.warning(f"Spreadsheet {doc_id}: no sheets to read")
+            return ""
+
+        logger.info(f"Reading {len(sheet_names)} sheets from spreadsheet {doc_id}")
+
+        # Batch-read requested sheets in one API call
+        ranges = [f"'{name}'!A:ZZ" for name in sheet_names]
+        result = (
+            self._sheets.spreadsheets()
+            .values()
+            .batchGet(spreadsheetId=doc_id, ranges=ranges)
+            .execute()
+        )
+
+        parts = []
+        for i, value_range in enumerate(result.get("valueRanges", [])):
+            sheet_name = sheet_names[i] if i < len(sheet_names) else f"Sheet{i+1}"
+            rows = value_range.get("values", [])
+
+            if not rows:
+                continue
+
+            sheet_text = f"=== {sheet_name} ===\n"
+            for row in rows:
+                sheet_text += "\t".join(str(cell) for cell in row) + "\n"
+
+            parts.append(sheet_text)
+
+        return "\n".join(parts)
 
     def _extract_docx_text(self, doc_id: str) -> str:
         """Download and extract text from a .docx file."""
@@ -126,19 +166,12 @@ class DriveReader:
         doc = Document(io.BytesIO(content))
         return "\n".join(p.text for p in doc.paragraphs)
 
-    def _export_as_csv(self, doc_id: str) -> str:
-        """Export a Google Sheet as CSV text."""
-        content = (
-            self._drive.files()
-            .export(fileId=doc_id, mimeType="text/csv")
-            .execute()
-        )
-        if isinstance(content, bytes):
-            return content.decode("utf-8")
-        return content
-
     def _export_as_plain_text(self, doc_id: str) -> str:
-        """Export a Google Workspace file as plain text."""
+        """Export a Google Workspace file as plain text.
+
+        This is faster than the Docs API for large documents since it
+        doesn't require parsing the full document structure.
+        """
         content = (
             self._drive.files()
             .export(fileId=doc_id, mimeType="text/plain")
