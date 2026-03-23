@@ -132,8 +132,9 @@ class DriveReader:
 
         logger.info(f"Reading {len(sheet_names)} sheets from spreadsheet {doc_id}")
 
-        # Batch-read requested sheets in one API call
-        ranges = [f"'{name}'!A:ZZ" for name in sheet_names]
+        # Batch-read requested sheets in one API call.
+        # Use just the sheet name as the range (returns all data).
+        ranges = [f"'{name}'" for name in sheet_names]
         result = (
             self._sheets.spreadsheets()
             .values()

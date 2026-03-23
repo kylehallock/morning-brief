@@ -245,9 +245,6 @@ def _format_summary_bullets(text: str) -> str:
         # Strip leading markdown bullets
         if stripped.startswith(("- ", "* ", "• ")):
             stripped = stripped[2:]
-        elif stripped.startswith(("**") and "**" in stripped[2:]):
-            # Bold header bullet like "**Theme:** details"
-            pass
 
         # Handle bold markers for inline display
         html_line = _escape(stripped)
