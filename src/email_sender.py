@@ -20,7 +20,6 @@ def compose_html(
     mdx_news: list[NewsItem],
     tb_news: list[NewsItem],
     errors: list[str],
-    email_summary: str = "",
 ) -> str:
     """Build an HTML email body with inline CSS and card-based layout."""
     sections = []
@@ -84,24 +83,6 @@ def compose_html(
                 color="#6b7280",
                 bg="#f9fafb",
                 content=table,
-            )
-        )
-
-    # --- Email Summary ---
-    if email_summary:
-        email_summary_html = _format_summary_bullets(email_summary)
-        sections.append(
-            _card(
-                title="EMAIL HIGHLIGHTS",
-                emoji="&#9993;",
-                color="#7c3aed",
-                bg="#f5f3ff",
-                content=(
-                    '<div style="font-size:11px; color:#9ca3af; margin-bottom:10px; '
-                    'text-transform:uppercase; letter-spacing:0.5px;">'
-                    'Team &amp; group communications only</div>'
-                    + email_summary_html
-                ),
             )
         )
 

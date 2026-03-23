@@ -15,6 +15,17 @@ logger = logging.getLogger(__name__)
 IMAP_HOST = "imap.gmail.com"
 IMAP_PORT = 993
 
+# Keywords for filtering emails to project-relevant content only.
+# Emails whose subject+snippet don't match any keyword are excluded.
+PROJECT_KEYWORDS = [
+    "stampede", "device", "assay", "pcr", "qpcr",
+    "tb", "tuberculosis", "diagnostic", "reagent",
+    "chip", "cartridge", "sputum", "sequence",
+    "ftaq", "dsbio", "is6110", "rif", "melt curve",
+    "rover", "bsl", "clinical", "validation",
+    "r2d2", "pluslife", "formulatrix",
+]
+
 
 @dataclass
 class EmailItem:
@@ -71,10 +82,17 @@ def fetch_recent_emails(hours_back: int = 24) -> list[EmailItem]:
 
     items.sort(key=lambda x: x.date, reverse=True)
     logger.info(
-        f"Returning {len(items)} public emails "
+        f"{len(items)} public emails "
         f"(filtered from {len(id_list)} total, threshold={threshold})"
     )
-    return items
+
+    # Relevance filter: only keep emails related to the project
+    relevant = [item for item in items if _is_project_relevant(item)]
+    logger.info(
+        f"Returning {len(relevant)} project-relevant emails "
+        f"(from {len(items)} public)"
+    )
+    return relevant
 
 
 def _parse_message(
@@ -154,6 +172,12 @@ def _decode_header_value(value: str) -> str:
         else:
             decoded.append(text)
     return " ".join(decoded)
+
+
+def _is_project_relevant(item: EmailItem) -> bool:
+    """Check if an email is relevant to the project based on keywords."""
+    text = f"{item.subject} {item.snippet}".lower()
+    return any(kw in text for kw in PROJECT_KEYWORDS)
 
 
 def _parse_email_date(date_str: str) -> datetime | None:

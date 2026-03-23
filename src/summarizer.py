@@ -29,19 +29,12 @@ SYSTEM_PROMPT = (
     "- Connections to broader project objectives\n"
     "- Action items and next steps\n\n"
     "Be direct and informative — this is read over morning coffee, but the reader "
-    "wants substance, not just headlines."
-)
-
-EMAIL_SUMMARY_PROMPT = (
-    "You are summarizing recent team and group emails for a morning briefing. "
-    "The team (Stampede) is building a point-of-care TB testing device.\n\n"
-    "Provide 3-5 concise bullet points covering:\n"
-    "- Action items or requests directed at the team\n"
-    "- Key decisions or announcements\n"
-    "- External stakeholder communications\n"
-    "- Meeting follow-ups or scheduling changes\n\n"
-    "Be direct. Skip routine/automated emails (calendar invites, notifications). "
-    "Focus on what the reader needs to know or act on today."
+    "wants substance, not just headlines.\n\n"
+    "You may also receive supplementary email context. Emails and journals are "
+    "complementary — the team often shares information over email that doesn't get "
+    "added to journals. Only incorporate email content when it adds new information "
+    "beyond what the journals already cover. Do not create a separate email section; "
+    "weave any relevant email context naturally into the thematic bullet points."
 )
 
 CONDENSED_SUMMARY_PROMPT = (
@@ -99,8 +92,13 @@ def _build_rolling_context(entries: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def summarize_updates(changes: list[DocumentChange]) -> str:
+def summarize_updates(changes: list[DocumentChange], email_context=None) -> str:
     """Summarize document changes using Gemini 2.5 Flash Lite.
+
+    Args:
+        changes: List of document changes from the diff engine.
+        email_context: Optional list of EmailItem objects with relevant
+            team emails to use as supplementary context.
 
     Returns the AI summary text, a raw-content fallback if Gemini fails,
     or an empty string if there are no real changes to summarize.
@@ -117,6 +115,24 @@ def summarize_updates(changes: list[DocumentChange]) -> str:
     for c in changed:
         parts.append(f"### {c.title}\nEdited by {c.last_editor}\n{c.new_content}")
     user_content = "Here are today's journal updates:\n\n" + "\n\n".join(parts)
+
+    # Append email context if available
+    if email_context:
+        email_parts = []
+        for item in email_context:
+            email_parts.append(
+                f"Subject: {item.subject}\n"
+                f"From: {item.sender}\n"
+                f"Snippet: {item.snippet}"
+            )
+        user_content += (
+            "\n\n---\n\n"
+            "## Supplementary Email Context\n"
+            "The following recent team emails may contain additional context "
+            "not yet captured in the journals. Only reference email content "
+            "if it adds new information beyond what the journals already cover.\n\n"
+            + "\n\n".join(email_parts)
+        )
 
     # Prepend project context if available
     project_context = _load_project_context()
@@ -183,56 +199,6 @@ def generate_condensed_summary(daily_summary: str) -> str:
         return condensed
     except Exception as e:
         logger.error(f"Condensed summary generation failed: {e}")
-        return ""
-
-
-def summarize_emails(email_items) -> str:
-    """Summarize recent team emails using Gemini.
-
-    Args:
-        email_items: list of EmailItem dataclass instances from email_reader.
-
-    Returns the AI summary text, or empty string if no emails or generation fails.
-    """
-    if not email_items:
-        return ""
-
-    parts = []
-    for item in email_items:
-        parts.append(
-            f"Subject: {item.subject}\n"
-            f"From: {item.sender}\n"
-            f"Recipients: {item.recipient_count}\n"
-            f"Snippet: {item.snippet}"
-        )
-    user_content = (
-        "Here are recent team/group emails from the last 24 hours:\n\n"
-        + "\n\n---\n\n".join(parts)
-    )
-
-    # Prepend project context if available
-    project_context = _load_project_context()
-    if project_context:
-        user_content = (
-            "## Project Context\n"
-            f"{project_context}\n\n"
-            "---\n\n"
-            f"{user_content}"
-        )
-
-    try:
-        api_key = get_gemini_api_key()
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=user_content,
-            config={"system_instruction": EMAIL_SUMMARY_PROMPT, "temperature": 0.3},
-        )
-        summary = response.text.strip()
-        logger.info(f"Email summary generated ({len(summary)} chars)")
-        return summary
-    except Exception as e:
-        logger.error(f"Email summarization failed: {e}")
         return ""
 
 

@@ -21,7 +21,6 @@ from src.summarizer import (
     generate_condensed_summary,
     load_rolling_summary,
     save_rolling_summary,
-    summarize_emails,
     summarize_updates,
 )
 
@@ -156,14 +155,26 @@ def run():
         logger.error(f"Document section failed: {e}")
         errors.append(f"Document section: {e}")
 
-    # --- Section 1b: Summarize changes ---
+    # --- Section 1b: Fetch relevant emails for context ---
+    email_context = []
+    try:
+        email_context = fetch_recent_emails(hours_back=24)
+        if email_context:
+            logger.info(f"Email context: {len(email_context)} relevant emails")
+        else:
+            logger.info("No relevant project emails found")
+    except Exception as e:
+        logger.error(f"Email fetch failed: {e}")
+        errors.append(f"Email fetch: {e}")
+
+    # --- Section 1c: Summarize changes (with email context) ---
     summary = ""
     try:
-        summary = summarize_updates(doc_changes)
+        summary = summarize_updates(doc_changes, email_context=email_context or None)
     except Exception as e:
         logger.error(f"Summarization failed: {e}")
 
-    # --- Section 1c: Update rolling summary ---
+    # --- Section 1d: Update rolling summary ---
     if summary:
         try:
             condensed = generate_condensed_summary(summary)
@@ -177,19 +188,6 @@ def run():
                 save_rolling_summary(rolling)
         except Exception as e:
             logger.error(f"Rolling summary update failed: {e}")
-
-    # --- Section 2: Email Highlights ---
-    email_summary = ""
-    try:
-        recent_emails = fetch_recent_emails(hours_back=24)
-        if recent_emails:
-            email_summary = summarize_emails(recent_emails)
-            logger.info(f"Email summary: {len(recent_emails)} emails summarized")
-        else:
-            logger.info("No public emails found for summary")
-    except Exception as e:
-        logger.error(f"Email summary failed: {e}")
-        errors.append(f"Email summary: {e}")
 
     # --- Section 3: News ---
     mdx_news = []
@@ -213,7 +211,7 @@ def run():
     try:
         now = datetime.now(timezone.utc)
         subject = f"Morning Brief \u2014 {now.strftime('%A, %B %d, %Y')}"
-        html = compose_html(doc_changes, summary, mdx_news, tb_news, errors, email_summary)
+        html = compose_html(doc_changes, summary, mdx_news, tb_news, errors)
         send_email(subject, html)
         logger.info("Briefing sent successfully")
     except Exception as e:
