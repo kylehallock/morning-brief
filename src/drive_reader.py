@@ -132,18 +132,35 @@ class DriveReader:
 
         logger.info(f"Reading {len(sheet_names)} sheets from spreadsheet {doc_id}")
 
-        # Batch-read requested sheets in one API call.
-        # Use just the sheet name as the range (returns all data).
-        ranges = [f"'{name}'" for name in sheet_names]
-        result = (
-            self._sheets.spreadsheets()
-            .values()
-            .batchGet(spreadsheetId=doc_id, ranges=ranges)
-            .execute()
-        )
+        # Try batch read first; fall back to one-at-a-time on failure
+        # (some sheet names cause API parsing errors).
+        try:
+            ranges = [f"'{name}'" for name in sheet_names]
+            result = (
+                self._sheets.spreadsheets()
+                .values()
+                .batchGet(spreadsheetId=doc_id, ranges=ranges)
+                .execute()
+            )
+            value_ranges = result.get("valueRanges", [])
+        except Exception as e:
+            logger.warning(f"Batch read failed for {doc_id}, reading sheets individually: {e}")
+            value_ranges = []
+            for name in sheet_names:
+                try:
+                    r = (
+                        self._sheets.spreadsheets()
+                        .values()
+                        .get(spreadsheetId=doc_id, range=f"'{name}'")
+                        .execute()
+                    )
+                    value_ranges.append(r)
+                except Exception as sheet_err:
+                    logger.warning(f"Skipping sheet '{name}': {sheet_err}")
+                    value_ranges.append({"values": []})
 
         parts = []
-        for i, value_range in enumerate(result.get("valueRanges", [])):
+        for i, value_range in enumerate(value_ranges):
             sheet_name = sheet_names[i] if i < len(sheet_names) else f"Sheet{i+1}"
             rows = value_range.get("values", [])
 
