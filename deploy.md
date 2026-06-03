@@ -23,6 +23,19 @@ In a Claude Code session opened in this repo, say: **"deploy the morning brief."
    byte-for-byte, and that `session_context.model` and `allowed_tools` match the config. If not,
    the deploy failed — do not consider it live.
 
+**Event-body schema (learned 2026-06-03).** The update body must send the event in the **v2 shape**
+the `get` returns, or the API falls back to a v1→v2 translation that errors (`events[0]: event_type
+is required`, then `unknown field "event_type"`). Mirror the live event exactly — only swap
+`message.content`:
+```
+job_config.ccr.events[0].data = {
+  "type": "user", "uuid": "<reuse the uuid from get>", "session_id": "",
+  "parent_tool_use_id": null, "message": { "role": "user", "content": "<raw SKILL.md>" }
+}
+```
+Do **not** add a top-level `event_type`. Send unicode (em-dashes, emoji) as `\uXXXX` escapes in the
+JSON string; they decode to the same bytes as the file.
+
 ## To verify a deploy / check for drift (anytime)
 
 Say **"check the morning brief is in sync."** Claude does `RemoteTrigger get` and diffs the live
