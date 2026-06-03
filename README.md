@@ -7,7 +7,7 @@ Runs weekdays at 13:10 UTC. Reads the team's Google Doc journals, scans recent G
 ## Files
 
 - `SKILL.md` — the routine's prompt, formatted as a Claude skill (with frontmatter)
-- `trigger.json` — full live trigger config from `claude.ai/v1/code/triggers/trig_018fg1QoGDkKqVmKUNHdpJUv`, including cron expression, allowed tools, MCP connections, and the raw prompt text
+- `trigger.json` — full live trigger config from `claude.ai/v1/code/triggers/trig_01UcDMdCJYnM6cKM1Cd68DXd`, including cron expression, allowed tools, MCP connections, and the raw prompt text
 
 ## Project context (synced)
 
