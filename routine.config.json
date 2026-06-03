@@ -1,0 +1,27 @@
+{
+  "_comment": "Non-prompt wiring for the morning-brief cloud routine. The PROMPT lives only in SKILL.md. Deploy reads SKILL.md verbatim into the trigger body and applies this config to session_context. See deploy.md.",
+  "trigger_id": "trig_01UcDMdCJYnM6cKM1Cd68DXd",
+  "name": "morning-brief-stampede",
+  "cron_expression": "10 13 * * 1-5",
+  "environment_id": "env_0193FmqDg2QZ5EQPhQGugkrP",
+  "model": "claude-opus-4-8",
+  "allowed_tools": [
+    "WebFetch",
+    "WebSearch",
+    "Grep",
+    "Read",
+    "mcp__c3d4eda3-705a-41f4-b8f3-7dbe8d932836__read_file_content",
+    "mcp__2757dedf-3b62-4d61-b619-cd85a3e02590__gmail_search_messages",
+    "mcp__2757dedf-3b62-4d61-b619-cd85a3e02590__gmail_read_message",
+    "mcp__2757dedf-3b62-4d61-b619-cd85a3e02590__gmail_create_draft"
+  ],
+  "mcp_connections": [
+    { "connector_uuid": "2757dedf-3b62-4d61-b619-cd85a3e02590", "name": "Gmail", "url": "https://gmailmcp.googleapis.com/mcp/v1" },
+    { "connector_uuid": "c3d4eda3-705a-41f4-b8f3-7dbe8d932836", "name": "Google-Drive", "url": "https://drivemcp.googleapis.com/mcp/v1" }
+  ],
+  "_notes": {
+    "no_Task": "Task is intentionally absent from allowed_tools — the routine is a single agent and no longer delegates to subagents (the cold-start bug that required it was fixed in Claude Code v2.1.105, Apr 2026).",
+    "model": "The whole single-agent run executes on Opus 4.8; there is no separate compose subagent anymore.",
+    "drive_tools": "Google Drive metadata + read_file_content are reached via the connected Google-Drive server; the connector's permitted_tools is empty (= all tools allowed)."
+  }
+}

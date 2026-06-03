@@ -1,23 +1,23 @@
 # morning-brief
 
-The Claude Code cloud routine that generates a daily morning brief for the Stampede / NusaDx project.
+The Claude Code cloud routine that generates a daily morning brief for the NusaDx (formerly Stampede) project.
 
-Runs weekdays at 13:10 UTC. Reads the team's Google Doc journals, scans recent Gmail, queries Europe PMC + ClinicalTrials.gov + web for TB/MDx news, then composes the brief as a Gmail draft via an Opus subagent.
+Runs weekdays at 13:10 UTC (20:10 WIB). A **single agent on Opus 4.8** reads the team's Google Doc journals, scans recent Gmail, queries Europe PMC + ClinicalTrials.gov + web for TB/MDx news, and composes the brief as a Gmail draft. (Free with Claude Pro — one run/weekday, within the ~5-runs/day cap.)
 
 ## Files
 
-- `SKILL.md` — the routine's prompt, formatted as a Claude skill (with frontmatter)
-- `trigger.json` — full live trigger config from `claude.ai/v1/code/triggers/trig_01UcDMdCJYnM6cKM1Cd68DXd`, including cron expression, allowed tools, MCP connections, and the raw prompt text
+- `SKILL.md` — **the single source of truth for the prompt** (frontmatter + body). Edit here.
+- `routine.config.json` — non-prompt wiring only: trigger id, cron, model, allowed tools, MCP connectors. Edit here when the *wiring* changes (rarely).
+- `deploy.md` — how to deploy `SKILL.md` to the live routine and how to check for drift.
+
+There is intentionally **no `trigger.json`** — it used to embed a second full copy of the prompt and was the source of constant drift. The deploy now reads `SKILL.md` verbatim, so the prompt exists in exactly one place.
 
 ## Project context (synced)
 
-The "Project Context" section of `SKILL.md` is **not authored here** — it is a synced copy of the
-canonical context block in the `work-tracker` repo (`context/project-brief.md`). When the project's
-phase, goals, team, or major decisions change, edit `project-brief.md` there first, then regenerate
-this block (and re-deploy). Don't let the two diverge.
+The "Project Context" section of `SKILL.md` is **not authored here** — it is a synced copy of the canonical context block in the `work-tracker` repo (`context/project-brief.md`). When the project's phase, goals, team, or major decisions change, edit `project-brief.md` there first, then regenerate this block here and re-deploy. Don't let the two diverge.
 
-## Restoring or modifying the routine
+## Modifying the routine
 
-To update the deployed routine from `SKILL.md`, edit `SKILL.md` and then push the body back through the `RemoteTrigger` API (`action: update`, body sets `job_config.ccr.events[0].data.message.content`).
-
-`trigger.json` is the source of truth for what is currently deployed — regenerate it after each deploy so it matches the live config.
+1. Edit `SKILL.md` (prompt) and/or `routine.config.json` (wiring).
+2. Deploy via the ritual in [`deploy.md`](deploy.md) — open a Claude session here and say "deploy the morning brief." The deploy pushes `SKILL.md` verbatim and asserts the live body matches byte-for-byte.
+3. Commit. The repo is the canonical, reviewable history; the live trigger is a verified copy of it.
