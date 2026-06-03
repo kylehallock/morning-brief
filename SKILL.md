@@ -17,7 +17,7 @@ You are generating Kyle's daily morning brief for the **NusaDx** project (former
 
 ## Step 1: Gather journal updates (fetch in parallel)
 
-Fetch all 5 sources **in parallel** using the Google Drive file-metadata tool with `excludeContentSnippets: false`. The returned `contentSnippet` holds the top of each document, where new entries live — compact and readable regardless of document size.
+Fetch all 6 sources **in parallel** using the Google Drive file-metadata tool with `excludeContentSnippets: false`. The returned `contentSnippet` holds the top of each document, where new entries live — compact and readable regardless of document size.
 
 The docs:
 1. `1uZTdmo7rn0C3oG1S541HIgehe8EPVWElCni6ovvMHPg` — NusaDx - H2 2026 RnD Journal
@@ -25,12 +25,15 @@ The docs:
 3. `1kykG39VPn-d4Dc4uGAWhTcUwzYYy751gCY7X7NOUzQo` — NusaDx Outreach Updates (rolling doc, not half-specific)
 4. `1jG1dqizHXuhm0YLiyiXrnN56x9wayNOoZipO_7qPEz4` — MoM - NusaDx Scientist H2 2026 (**spreadsheet** — see note)
 5. `1_jGXJ5zPCZitKIVcOH8rUePncoOvL9FIcKh6pbxCfGQ` — STAMPEDE - H1 2026 EE Journal (no H2 EE journal exists yet; this H1 doc is still the EE team's live journal — swap the ID once an H2 one appears)
+6. `1IL6t_XWisWhM1fplN514IgkP5kY5GQa3fWMxgSdJIZs` — OpenProject Daily Digest — Stampede (**auto-generated**, not a journal — a compact digest of the software team's OpenProject work-package activity, regenerated each morning before this brief; see note)
 
 For each source, produce two things:
 - **Verbatim extract:** only entries dated within the last 1–2 business days — preserve exact facts, numbers, names, quotes. A few bullets per person is enough. Then discard the raw text; don't carry it forward.
 - **Activity-log line:** doc name, author(s) with recent entries, and date(s). If nothing recent, record "No recent updates" plus the most recent entry date you can see (check `modifiedTime`).
 
 **Doc #4 is a spreadsheet,** not a prose doc: its snippet is a Gantt timeline + a week-by-week grid that runs chronologically **downward** and is mostly empty early in a half. Scan for the current/most-recent week's rows; if no filled cells for the last 1–2 business days, log "No recent updates."
+
+**Doc #6 is the auto-generated OpenProject digest,** not a journal: it already summarizes the software team's last-24h work-package activity (status changes, comments, new/reassigned, overdue) and is regenerated each morning before this brief. Don't date-filter it — use its content directly to populate the 💻 SOFTWARE section, and render its work-package links (`openproject.formulatrix.com/work_packages/…`) as links. Exclude it from the Journal Activity footnote (it's a bot doc, not a human journal). If its own "generated" timestamp isn't from today, note the digest may be stale.
 
 **Fallbacks:** If the metadata tool fails for a doc, use the Drive read-file-content tool (use only the first ~10,000 characters; if the result is too large to return inline, skip the doc and log it "unavailable — file too large"). If a `contentSnippet` looks hard-truncated mid-entry (a recent entry is cut off), do one bounded read-content call for just that doc to recover the full entry.
 
@@ -98,6 +101,7 @@ Return the brief as clean inline-styled HTML (no `<html>`/`<head>`/`<body>` tags
 - 📊 **EXECUTIVE SUMMARY** — 2–3 sentences: what happened recently, what matters most today.
 - 📋 **STATUS** — key metrics: sample counts, study progress, approaching deadlines.
 - 🔬 **PROGRESS** — what moved forward recently.
+- 💻 **SOFTWARE (OpenProject)** — software-team work-package activity from the OpenProject digest (doc #6): resolved/closed issues, notable new tasks, status changes, and overdue items needing attention. Link work-package numbers where useful. Omit if the digest shows no changes.
 - 🚨 **BLOCKERS & RISKS** — what's stuck or needs attention.
 - ✅ **ACTION ITEMS** — what needs Kyle's decision or follow-up.
 - 🌐 **NEWS** — the 3–5 curated items.
