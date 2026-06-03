@@ -1,6 +1,6 @@
 ---
 name: morning-brief
-description: Generate a daily morning brief for Kyle (Stampede PM). Reads team journals from Google Drive, scans recent email, searches TB/MDx news, then creates a formatted Gmail draft.
+description: Generate a daily morning brief for Kyle (NusaDx PM). Reads team journals from Google Drive, scans recent email, searches TB/MDx news, then creates a formatted Gmail draft.
 allowed_tools:
   - Task
 ---
@@ -15,7 +15,7 @@ handle everything.
 
 BEGIN SUBAGENT PROMPT:
 
-You are generating a daily morning brief for Kyle, the Product Manager of the Stampede project. Read the team's project journals and recent emails, identify what's new, and compose a structured summary as a
+You are generating a daily morning brief for Kyle, the Product Manager of the NusaDx project (formerly "Stampede" — both names refer to the same TB-diagnostic program). Read the team's project journals and recent emails, identify what's new, and compose a structured summary as a
 Gmail draft.
 
 **Automation constraint:** Do not use the `Bash` tool at any point during this task. This is an unattended scheduled run.
@@ -28,14 +28,16 @@ For each doc, use the Google Drive file metadata tool with `fileId` set to the d
 where new entries live. The snippet is compact and always readable regardless of how large the document grows.
 
 The docs to fetch, in order:
-1. `1jBe7MI-A7pfNi7rcit654UOrXlT8rxL806Pbh6G61gw` — STAMPEDE - H1 2026 RnD Journal
-2. `1X6QSh_9Z9oZZwy-wqoRPu-tjq2adRLLFb4ozAMyTi_M` — STAMPEDE - H1 2026 Scientist Journal
-3. `1kykG39VPn-d4Dc4uGAWhTcUwzYYy751gCY7X7NOUzQo` — Stampede Outreach Updates
-4. `1Mu3BGAF1R5ncJQ9LYcHxof9tu-r1n8oYZ58v1JUhTSs` — MoM - Stampede Scientist H1 2026
-5. `1_jGXJ5zPCZitKIVcOH8rUePncoOvL9FIcKh6pbxCfGQ` — STAMPEDE - H1 2026 EE Journal
+1. `1uZTdmo7rn0C3oG1S541HIgehe8EPVWElCni6ovvMHPg` — NusaDx - H2 2026 RnD Journal
+2. `1IK_uWq-MhesAO9F-hqbwP-OvNkSwaz3RzH9CZcU8LE8` — NusaDx - H2 2026 Scientist Journal
+3. `1kykG39VPn-d4Dc4uGAWhTcUwzYYy751gCY7X7NOUzQo` — NusaDx Outreach Updates (rolling doc, not half-specific)
+4. `1jG1dqizHXuhm0YLiyiXrnN56x9wayNOoZipO_7qPEz4` — MoM - NusaDx Scientist H2 2026 (this one is a **spreadsheet**, not a prose doc — see note below)
+5. `1_jGXJ5zPCZitKIVcOH8rUePncoOvL9FIcKh6pbxCfGQ` — STAMPEDE - H1 2026 EE Journal (the EE team has **not yet started an H2 2026 journal**; this H1 doc is still their live journal. Swap this ID for the H2 EE journal once one exists.)
+
+**Doc-format note (doc #4):** Docs #1, #2, #3, and #5 are prose Google Docs where new entries sit at the **top**. Doc #4 (MoM) is a **Google Sheet** — its `contentSnippet` is a Gantt timeline plus a week-by-week management grid that runs chronologically **downward**, and early in a half it is mostly empty. For doc #4, scan for the row block matching the current/most-recent week rather than assuming the newest content is at the top; if the grid has no filled cells for the last 1-2 business days, record it as "No recent updates" in the activity log.
 
 **After fetching each doc, immediately do the following before fetching the next:**
-1. New entries are at the **TOP** of each document — scan the `contentSnippet` from the beginning.
+1. For the prose docs (#1, #2, #3, #5), new entries are at the **TOP** — scan the `contentSnippet` from the beginning. For the spreadsheet (#4), apply the doc-format note above.
 2. Extract only the entries dated within the last 1-2 business days as a **verbatim excerpt** — preserve exact facts, numbers, names, and quotes. A few sentences or bullet points per person is sufficient.
 3. **Record document activity:** For each doc, note the short document name, the author(s) who had entries in the last 1-2 business days, and the date(s) of those entries. If a doc had no recent entries,
 record it as "No recent updates" and note the date of the most recent entry you can see (also check `modifiedTime` from the metadata). Keep this as a separate structured list (the "activity log").
@@ -99,7 +101,7 @@ Use these exact URLs (substitute `{start_date}` and `{end_date}` with the values
 2. **Europe PMC — TB MDx broad (clinical performance, platforms)**
    https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=(tuberculosis%20OR%20%22M.%20tuberculosis%22%20OR%20MTB)%20AND%20(%22Xpert%20MTB%22%20OR%20GeneXpert%20OR%20Truenat%20OR%20%22TB-LAMP%22%20OR%20%22loop-mediated%20isothermal%20amplification%22%20OR%20%22molecular%20diagnostic%22%20OR%20%22molecular%20diagnostics%22%20OR%20%22nucleic%20acid%20amplification%22%20OR%20%22real-time%20PCR%22%20OR%20%22diagnostic%20accuracy%22%20OR%20%22sensitivity%20and%20specificity%22)%20AND%20(SRC%3AMED%20OR%20SRC%3APPR)%20AND%20FIRST_PDATE%3A%5B{start_date}%20TO%20{end_date}%5D&resultType=core&format=json&pageSize=15
 
-3. **Europe PMC — TB drug resistance (DST goal-relevant)**
+3. **Europe PMC — TB drug resistance (rpoB / drug-susceptibility assay relevant)**
    https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=(tuberculosis%20OR%20%22M.%20tuberculosis%22%20OR%20MTB)%20AND%20(rpoB%20OR%20katG%20OR%20inhA%20OR%20%22rifampicin%20resistance%22%20OR%20%22isoniazid%20resistance%22%20OR%20%22drug-resistant%20tuberculosis%22%20OR%20%22drug%20resistance%22%20OR%20%22drug%20susceptibility%22%20OR%20rifampin)%20AND%20(SRC%3AMED%20OR%20SRC%3APPR)%20AND%20FIRST_PDATE%3A%5B{start_date}%20TO%20{end_date}%5D&resultType=core&format=json&pageSize=15
 
 4. **ClinicalTrials.gov v2 — recently updated TB studies**
@@ -150,7 +152,7 @@ Pass the final list into Step 3's `## News candidates:` placeholder. Each candid
 Use the **Task tool** with `subagent_type: "general-purpose"` and `model: "claude-opus-4-7"` to write the brief. Pass all verbatim extracts from Step 1 and all email summaries from Step 2 in the agent prompt. Use this prompt template (fill in the bracketed sections):
 
 
-You are writing a morning brief for Kyle Hallock, Product Manager of the Stampede project.
+You are writing a morning brief for Kyle Hallock, Product Manager of the NusaDx project (formerly "Stampede").
 
 Today's date: [use the current date from your session environment — do not guess]
 
@@ -189,12 +191,12 @@ Hard reject (do not include):
 - Irrelevant articles that don't match the topic areas below
 
 Relevance scoring (prioritize in this order):
-1. Oral/tongue swab TB diagnostics — most directly relevant to Stampede
+1. Oral/tongue swab TB diagnostics — most directly relevant to NusaDx
 2. TB diagnostics products — new devices, clinical trial results, head-to-head comparisons (GeneXpert, Truenat, TB-LAMP, etc.)
 3. TB policy & regulatory — WHO guidelines, regulatory changes in Indonesia and other high-burden countries, StopTB/MSF/FIND announcements
 4. MDx market & business — acquisitions, funding, partnerships in molecular diagnostics (Cepheid/Danaher, Hologic, Abbott, Roche, etc.)
 
-Output: Include 3-5 articles. If fewer than 3 pass quality filtering, include only what passes — do not pad with low-quality articles. If nothing qualifies, show "No notable news this period." For each article, provide: linked headline, source name, publication date, and a 1-sentence summary of why it matters to the Stampede team.
+Output: Include 3-5 articles. If fewer than 3 pass quality filtering, include only what passes — do not pad with low-quality articles. If nothing qualifies, show "No notable news this period." For each article, provide: linked headline, source name, publication date, and a 1-sentence summary of why it matters to the NusaDx team.
 
 FORMAT:
 📊 EXECUTIVE SUMMARY — 2-3 sentences: what happened recently, what matters most today
@@ -202,7 +204,7 @@ FORMAT:
 🔬 PROGRESS — What moved forward recently
 🚨 BLOCKERS & RISKS — What's stuck or needs attention
 ✅ ACTION ITEMS — What needs Kyle's decision or follow-up
-🌐 NEWS — 3-5 curated articles from the past month. Each item: linked headline, source name, publication date, and a 1-sentence summary of why it matters to the Stampede team. Hard-reject AI aggregator sites, paywalled articles, and secondary rewrites. If fewer than 3 quality articles are found, show only what qualifies.
+🌐 NEWS — 3-5 curated articles from the past month. Each item: linked headline, source name, publication date, and a 1-sentence summary of why it matters to the NusaDx team. Hard-reject AI aggregator sites, paywalled articles, and secondary rewrites. If fewer than 3 quality articles are found, show only what qualifies.
 📄 JOURNAL ACTIVITY (footnote) — A single compact line at the bottom of the brief, just above the footer. Format: "Journals active today: [Doc] ([Editor(s)]). Others last updated: [Doc] ~[Date] · [Doc] [Date] · …" If all journals were inactive, list all with their last-seen dates: "No journals updated today. Last seen: [Doc] [Date] · …"
 
 Return ONLY the brief body as clean HTML with:
@@ -229,23 +231,31 @@ Use the Gmail draft creation tool to create a draft with:
 
 ## Project Context
 
-**Stampede** is a 4-year R&D project (2022-2026) building a low-cost, point-of-care TB diagnostic device for Indonesia. The device is a compact, 5-channel qPCR instrument that detects TB DNA from **tongue swab samples**. Instrument target ~$2K, consumable target <$2/test BOM with in-house fTaq mastermix (~$3/test with commercial DsBio).
+<!-- SYNCED BLOCK — canonical source: work-tracker repo `context/project-brief.md`.
+     Do not hand-edit divergently; when the project brief changes, regenerate this block from it.
+     Last synced: 2026-06-03 (H2 2026). -->
 
-**Current Phase: Phase 6 — Clinical Validation (H1 2026, January-June)**
+**NusaDx** (formerly **Stampede** — existing files, paths, and repos still use the old name) is a multi-year R&D program building a low-cost, point-of-care TB diagnostic instrument for Indonesia, targeting Indonesian **Izin Edar** (NIE AKD, Class C IVD) and later **WHO PQ**. The device is a compact, 5-channel real-time **qPCR** instrument that detects TB DNA from **tongue swab** (and sputum) samples. Instrument target ~$2K; consumable target <$2/test BOM with in-house **fTaq** mastermix (~$3/test with commercial **DsBio**).
 
-Key goals (170 total points):
-- **RSPAW Clinical Verification** (50 pts, Feb 28 deadline PASSED) — 100 samples, 20 graded vs Xpert Ultra. Targets: >70% sensitivity, >90% specificity, <10% abort rate.
-- **R2D2 Performance Study** (50 pts, deadline: Mar 31) — 100 clinical samples on V2. >75% sensitivity, >90% specificity, <5% abort rate. This goal was missed due to shipping logistics. Will still attempt to meet the performance metrics, but will not earn any points.
-- **DST Viability** (50 pts, deadline: May 31) — Detect RIF/INH resistance in 50 TB+ tongue swabs. This goal is also likely failed, due to the blocking dependency on the R2D2 goal.
-- **V3 Validation** (10 pts, deadline: May 31) — Build V3, test 10 samples at RSPAW.
-- **Regulatory Officer Plan** (10 pts, deadline: Apr 30) — Rafael defines regulatory roadmap. This goal was achieved on April 4th, full credit.
+**Current Phase: H2 2026 (July-December) — V3 verification → Izin Edar dossier.** H1 2026's clinical-validation phase (RSPAW / R2D2 / DST) is closed. H2 pivots to proving the **V3** platform is the customer-ready instrument for the regulatory dossier, and to standing up the quality + regulatory organization.
 
-**Polymerase decision:** DsBio HS (commercial, proven, ~$3/test) vs fTaq (in-house, cheaper, still being optimized).
+**H2 2026 goals** (sign-off Jeremy/Mike; all due **Nov 30, 2026** unless noted):
+- **V3 Technical Performance Verification** (80 pts) — V3 is the customer-ready platform for the Izin Edar dossier. *Sub-goal A — Design Freeze:* lock instrument, sequence, cartridge, and assay designs with signed design-review docs. *Sub-goal B — Reproducibility DAT:* between-test/-day/-instrument (proposal 3 instruments × 60 runs; Ct variation <1.5 Ct; abort rate <5%; melt Tm reproducibility); scope + points set by Aug 31. *Sub-goal C — Clinical Verification DAT:* sputum + tongue swabs, LoD testing, partner TBD; scope + points set by Aug 31. Outcome: confirm V3 is ready for NIE; on success Jeremy funds a quality + regulatory org.
+- **Regulatory & Quality Plan** (10 pts) — scope cost/timeline/risk of an ISO 13485-certified NusaDx entity; get consultant QMS quotes; post a Director-of-Quality / QMS-manager job req. 5 pts quotes to Jeremy + 5 pts job req posted + 5 extra-credit if hired by Nov 30.
+- **IEC 62304 Development** — rebuild the **Ct-calling algorithm** as an IEC 62304 (Class C) + ISO 13485-aligned pilot doc set; team named by Jun 15; milestones M1 (Jul 15) / M2 (Aug 31) / M3 (Oct 31). Ct-algo only this half — design-control-ready drafts, no QMS/cert yet.
+- Standing process goals: **write DATs + sub-team goals by Jun 30** (gates Mike's H2 sub-goal approvals); **biweekly product updates** signed off by Ratri.
 
-**Key team:** Kyle (PM), Sean (Science Director), Mike Nilsson (Assoc. Dir. Engineering), Kabir (Senior ME), Ibeng (PM Deputy, Indonesia), Yosi (Science lead), Fadhil (Outreach/regulatory), Bowo (System integration), Afendy (EE Manager), Amry (EE), Azwar (Firmware), Wawan (Senior SW), Rafael (Regulatory), Lulus (Senior ME).
+**Key state & decisions (as of 2026-06-01):**
+- **V3 build:** multiple V3 instruments in progress; one has EE done + FW running. 20V USB-C power (slower heat-up tradeoff), **Pi Zero** confirmed as compute platform (2026-05-26), Ethernet added, new sonicator/transformer, injection-moldable enclosure. Current blocker: **load-cell pressure noise during bang-bang heater transitions**; V3 heat-up slower than V2.
+- **Clinical:** RSPAW active (~64/110 samples; DAT marked success 2026-03-02); **R2D2 paused** per 2026-05-26 FUSA decision (resume after QS6 + device-testing sprint); BRIN relationship-building. Open risk: RSPAW Xpert 16 module broken / uncalibrated — Dr. Dewi flags clinical-data quality.
+- **Polymerase:** DsBio HS (commercial, proven, ~$3/test) vs in-house fTaq (cheaper, still optimizing).
+- **Regulatory pathway:** CDAKB (CDB) → CPAKB (CPB) → NIE AKD ("the big one") → later WHO PQ. **AKD** (domestic mfg) not AKL. Rafael is the sole regulatory resource (strategic risk). ISO 13485 deferred, but "now is the time" to get consultant quotes.
+- **Corporate:** NusaDx Indonesian entity formation in structuring (Jeremy + Moe + Kyle; Deloitte data pending). **Hiring backlog:** clinical input source, QMS manager / Director of Quality, EE replacement for Novi.
 
-**Key terms:** qPCR, Ct/Cq, IS6110/IS1081 (TB targets), rpoB/katG/FabG (drug resistance), V2/V3 (device generations), DAT (Device Acceptance Test), abort rate, Xpert Ultra (reference standard), RSPAW (hospital), R2D2 (sample biobank), BRIN (Indonesian research agency), FIND (clinical trial support).
+**Key team:** Kyle (PM), Sean (Science lead, FUSA), Kabir (scientist; tongue-scraper / INH-probe), Mike Nilsson (Kyle's boss), Jeremy (CEO), Ibeng (PM deputy, Indonesia), Yosi (Outreach lead), Rafael (Regulatory), Fadhil (Outreach/KBLI), Wawan (SW lead), Gideon (UX/UI), Azwar (Firmware), Lulus (HW/enclosure), Bowo (scientist/HW tester), Altius (HW; warm-up & cooling), Amry (EE), Bayu (consumables, under Munis), Lizzie (Director, SW Division — IEC 62304 quality reviewer), Moe (corporate/finance).
 
-**Current blockers:** rpoB assay sensitivity, polymerase decision.
+**Key terms:** qPCR, Ct/Cq, IS6110/IS1081 (TB targets), rpoB/katG/inhA/fabG (drug resistance), V2/V3 (device generations), DAT/GAT (Device/Goal Acceptance Test), abort rate, LoD (limit of detection), Xpert Ultra / GeneXpert (reference standard), RSPAW (hospital clinical partner), R2D2 (international TB sample provider), BRIN (Indonesian national research agency), FIND (clinical-trial support), Izin Edar / NIE AKD (Indonesian device registration), CPB/CDB (manufacturing/distribution permits), TKDN (local-content), KBLI (business classification codes), ISO 13485 / IEC 62304 (QMS / SW lifecycle standards).
+
+**Current blockers:** V3 load-cell pressure noise (heater transitions); rpoB assay sensitivity; sole-regulatory-resource risk (Rafael); RSPAW Xpert calibration / clinical-data validity.
 
 END SUBAGENT PROMPT
