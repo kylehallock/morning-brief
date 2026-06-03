@@ -2,7 +2,9 @@
 
 The Claude Code cloud routine that generates a daily morning brief for the NusaDx (formerly Stampede) project.
 
-Runs weekdays at 13:10 UTC (20:10 WIB). A **single agent on Opus 4.8** reads the team's Google Doc journals, scans recent Gmail, queries Europe PMC + ClinicalTrials.gov + web for TB/MDx news, and composes the brief as a Gmail draft. (Free with Claude Pro — one run/weekday, within the ~5-runs/day cap.)
+Runs weekdays at 13:10 UTC (20:10 WIB). It reads the team's Google Doc journals, scans recent Gmail, queries Europe PMC + ClinicalTrials.gov + web for TB/MDx news, and composes the brief as a Gmail draft. (Free with Claude Pro — one run/weekday, within the ~5-runs/day cap.)
+
+**Architecture:** the top-level orchestrator (Sonnet) immediately delegates the whole job to **one worker subagent on Opus 4.8**, which does every step inline (no further subagents). The delegation is mandatory, not stylistic: on this routine's cloud runtime the top-level agent does **not** receive the attached MCP tools at cold start (bug `anthropics/claude-code#43397`, *not* fixed here as of 2026-06-03 despite the claimed v2.1.105 fix) — a subagent does. A no-delegation single-agent version was tried and failed (Gmail + Drive never loaded). One hop is the minimum that works; the old design had two.
 
 ## Files
 

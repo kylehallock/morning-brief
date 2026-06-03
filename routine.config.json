@@ -4,8 +4,9 @@
   "name": "morning-brief-stampede",
   "cron_expression": "10 13 * * 1-5",
   "environment_id": "env_0193FmqDg2QZ5EQPhQGugkrP",
-  "model": "claude-opus-4-8",
+  "model": "claude-sonnet-4-6",
   "allowed_tools": [
+    "Task",
     "WebFetch",
     "WebSearch",
     "Grep",
@@ -20,8 +21,8 @@
     { "connector_uuid": "c3d4eda3-705a-41f4-b8f3-7dbe8d932836", "name": "Google-Drive", "url": "https://drivemcp.googleapis.com/mcp/v1" }
   ],
   "_notes": {
-    "no_Task": "Task is intentionally absent from allowed_tools — the routine is a single agent and no longer delegates to subagents (the cold-start bug that required it was fixed in Claude Code v2.1.105, Apr 2026).",
-    "model": "The whole single-agent run executes on Opus 4.8; there is no separate compose subagent anymore.",
+    "Task_required": "Task IS in allowed_tools because the cold-start MCP bug (anthropics/claude-code#43397) still bites this routine's runtime despite the claimed v2.1.105 fix — verified 2026-06-03: a no-delegation single agent could not see Gmail/Drive. The top-level orchestrator delegates the whole job to ONE worker subagent, which DOES get the MCP tools.",
+    "model_split": "session_context.model (this 'model' field) = claude-sonnet-4-6 is the OUTER orchestrator, which only spawns the worker. The worker subagent runs on claude-opus-4-8, set via the Task call's model param inside SKILL.md. The worker composes inline — no second subagent (one hop, not the original two).",
     "drive_tools": "Google Drive metadata + read_file_content are reached via the connected Google-Drive server; the connector's permitted_tools is empty (= all tools allowed)."
   }
 }

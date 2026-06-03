@@ -1,18 +1,19 @@
 ---
 name: morning-brief
-description: Generate a daily morning brief for Kyle (NusaDx PM). Reads team journals from Google Drive, scans recent email, searches TB/MDx news, then creates a formatted Gmail draft. Runs as a single unattended agent on Opus 4.8.
+description: Generate a daily morning brief for Kyle (NusaDx PM). Reads team journals from Google Drive, scans recent email, searches TB/MDx news, then creates a formatted Gmail draft.
+allowed_tools:
+  - Task
 ---
 
-You are generating Kyle's daily morning brief for the **NusaDx** project (formerly "Stampede" — both names refer to the same TB-diagnostic program) and saving it as a Gmail draft. Execute the steps below **directly, in order, as a single agent** — do not spawn subagents.
+You are executing the morning-brief skill in a claude.ai cloud routine. **Known runtime constraint:** the top-level orchestrator does **not** receive the attached MCP tools (Gmail, Google Drive) at cold start — they are never injected into its tool registry, so it cannot call them and ToolSearch can't find them. A **subagent spawned via the Task tool DOES get the MCP tools.** (This is the cold-start bug `anthropics/claude-code#43397`; the changelog claims a v2.1.105 fix but it does **not** hold on this routine's runtime as of 2026-06-03 — verified empirically.)
 
-**Automation constraints (unattended scheduled run):**
-- Do **not** use the `Bash` tool at any point.
-- Do **not** search the web for journal content — the journals are private Google Docs; web search will waste tokens and find nothing.
-- The output is a Gmail **draft** (Kyle reviews before anything sends). Your job ends at a created draft — either a real brief or, on failure, the explicit FAILED notice in Step 5.
+Therefore: **immediately delegate ALL work to a single subagent and do nothing else yourself.** Do not call any MCP tool, WebFetch, WebSearch, or Bash at this level. Use the **Task tool** once, with `subagent_type: "general-purpose"` and `model: "claude-opus-4-8"`, passing everything below the `=== BEGIN WORKER PROMPT ===` line as the subagent's prompt. The worker does the entire job (including composing the HTML) in one agent — it must **not** spawn any further subagents.
 
-## Step 0: Warm-up probe
+=== BEGIN WORKER PROMPT ===
 
-Before the real work, make **one** cheap read-only Gmail call — a trivial thread-search (e.g. `newer_than:1d`, take 1 result) — to confirm the MCP connection is live on this cold start. If it errors or returns nothing usable, wait a few seconds and **retry once**. If the retry also fails, continue anyway — but if later Drive/Gmail calls also fail wholesale, go to Step 5 (FAILED). *(Historical note: an old cold-start bug, fixed in Claude Code v2.1.105 / Apr 2026, used to require delegating the whole run to a subagent. The probe replaces that. If this probe ever starts failing twice routinely, delegating just the Gmail steps to a subagent is the known fallback — but don't add that preemptively.)*
+You are generating Kyle's daily morning brief for the **NusaDx** project (formerly "Stampede" — both names refer to the same TB-diagnostic program) and saving it as a Gmail draft. Do the whole job yourself, in order — **do not spawn subagents.**
+
+**Constraints:** Do **not** use the `Bash` tool. Do **not** web-search for journal content (the journals are private Google Docs). If a Gmail or Drive call errors on its first try, retry it once before treating it as failed. The output is a Gmail **draft** (Kyle reviews before anything sends).
 
 ## Step 1: Gather journal updates (fetch in parallel)
 
@@ -61,9 +62,9 @@ Compute `start_date = today − 14 days` and `end_date = today`, both `YYYY-MM-D
 
 **3c — Merge & dedup.** Combine all candidates. Drop any whose stable ID is in `seen_ids`. Deduplicate within the set by canonical URL (lowercase host, strip trailing `/`, drop query/fragment); when duplicated, keep the longer snippet. Cap at ~12–15 candidates. **Per-source resilience:** a source that errors is skipped, not fatal. If all three fail, the news section becomes "No notable news this period" — still ship the brief.
 
-## Step 4: Compose the brief and create the draft
+## Step 4: Compose the brief and create the draft (inline — no subagent)
 
-Apply the **## Rubric** and **## HTML spec** below (defined once — do not restate them). Using the journal extracts + activity log (Step 1), email context (Step 2), the deduped candidates (Step 3), and the **## Project Context** below: select 3–5 news items per the rubric, write the brief as the specified HTML, and create the Gmail draft:
+Apply the **## Rubric** and **## HTML spec** below (defined once — do not restate them). Using the journal extracts + activity log (Step 1), email context (Step 2), the deduped candidates (Step 3), and the **## Project Context** below: select 3–5 news items per the rubric, write the brief as the specified HTML yourself, and create the Gmail draft:
 - **to:** `["kyle.hallock@formulatrix.com"]`
 - **subject:** `Morning Brief — [today as: weekday, month day, year]` — use the current date from your session environment; double-check the weekday matches the date.
 - **htmlBody:** the composed HTML.
@@ -132,3 +133,5 @@ Rules: outer wrapper is one `<div>` at width 100% (no max-width); body text `fon
 **Key terms:** qPCR, Ct/Cq, IS6110/IS1081 (TB targets), rpoB/katG/inhA/fabG (drug resistance), V2/V3 (device generations), DAT/GAT (Device/Goal Acceptance Test), abort rate, LoD (limit of detection), Xpert Ultra / GeneXpert (reference standard), RSPAW (hospital clinical partner), R2D2 (international TB sample provider), BRIN (Indonesian national research agency), FIND (clinical-trial support), Izin Edar / NIE AKD (Indonesian device registration), CPB/CDB (manufacturing/distribution permits), TKDN (local-content), KBLI (business classification codes), ISO 13485 / IEC 62304 (QMS / SW lifecycle standards).
 
 **Current blockers:** V3 load-cell pressure noise (heater transitions); rpoB assay sensitivity; sole-regulatory-resource risk (Rafael); RSPAW Xpert calibration / clinical-data validity.
+
+=== END WORKER PROMPT ===
