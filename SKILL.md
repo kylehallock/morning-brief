@@ -149,7 +149,7 @@ Pass the final list into Step 3's `## News candidates:` placeholder. Each candid
 
 ## Step 3: Compose the morning brief using Opus
 
-Use the **Task tool** with `subagent_type: "general-purpose"` and `model: "claude-opus-4-7"` to write the brief. Pass all verbatim extracts from Step 1 and all email summaries from Step 2 in the agent prompt. Use this prompt template (fill in the bracketed sections):
+Use the **Task tool** with `subagent_type: "general-purpose"` and `model: "claude-opus-4-8"` to write the brief. Pass all verbatim extracts from Step 1 and all email summaries from Step 2 in the agent prompt. Use this prompt template (fill in the bracketed sections):
 
 
 You are writing a morning brief for Kyle Hallock, Product Manager of the NusaDx project (formerly "Stampede").
